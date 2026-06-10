@@ -1,7 +1,7 @@
 class ApiConfig {
   /// Odoo server URL (ngrok tunnel).
   static const String baseUrl =
-      'https://25e6-2a02-cb80-4144-6f81-571e-8ae5-f864-a297.ngrok-free.app';
+      'https://e4b1-2a02-cb80-4144-6f81-f124-cf05-2d8-2fa6.ngrok-free.app';
 
   /// Odoo database name — must match your database exactly.
   static const String defaultDatabase = 'smart_delivery';
@@ -21,11 +21,11 @@ class ApiConfig {
   static const String driverLocationEndpoint = '/api/driver/location/update';
   static const String chatEndpoint = '/api/chat';
   static const String trackingEndpoint = '/api/tracking';
-  static const String fcmRegisterEndpoint = '/api/fcm/register';
-  static const String fcmUnregisterEndpoint = '/api/fcm/unregister';
 
   static String deliveryDetail(int id) => '/api/delivery/$id';
   static String deliveryStatus(int id) => '/api/delivery/$id/status';
+  static String deliveryComplete(int id) => '/api/delivery/$id/complete';
+  static String deliveryRate(int id) => '/api/delivery/$id/rate';
   static String tracking(int id) => '$trackingEndpoint/$id';
   static String trackingStream(int id) => '$trackingEndpoint/$id/stream';
   static String trackingPoll(int id) => '$trackingEndpoint/$id/poll';

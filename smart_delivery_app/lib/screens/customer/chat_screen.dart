@@ -20,9 +20,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   static const _suggestions = [
     'Where is my order?',
-    'When will it arrive?',
-    'Is it delayed?',
     'Who is my driver?',
+    'What is the delivery status?',
   ];
 
   @override
@@ -95,7 +94,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Ask anything about your delivery status, ETA, or driver.',
+                    'Ask anything about your delivery status or driver.',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.85),
                       fontSize: 13,

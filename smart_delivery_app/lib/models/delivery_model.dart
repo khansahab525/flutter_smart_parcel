@@ -40,13 +40,12 @@ class DeliveryModel {
   final double? currentLat;
   final double? currentLng;
   final DriverInfo? driver;
-  final int? etaMinutes;
-  final String? etaDatetime;
-  final String delayStatus;
-  final String? delayReason;
-  final int riskScore;
-  final String riskLevel;
-  final String? trafficLevel;
+  final String? pickupAddress;
+  final String? deliveryAddress;
+  final String? confirmationPin;
+  final bool hasPod;
+  final int? rating;
+  final String? feedback;
 
   const DeliveryModel({
     required this.id,
@@ -61,13 +60,12 @@ class DeliveryModel {
     this.currentLat,
     this.currentLng,
     this.driver,
-    this.etaMinutes,
-    this.etaDatetime,
-    this.delayStatus = 'on_time',
-    this.delayReason,
-    this.riskScore = 0,
-    this.riskLevel = 'low',
-    this.trafficLevel,
+    this.pickupAddress,
+    this.deliveryAddress,
+    this.confirmationPin,
+    this.hasPod = false,
+    this.rating,
+    this.feedback,
   });
 
   bool get isActive =>
@@ -100,13 +98,12 @@ class DeliveryModel {
       currentLat: _toDouble(json['current_lat']),
       currentLng: _toDouble(json['current_lng']),
       driver: DriverInfo.fromJson(json['driver']),
-      etaMinutes: _toInt(json['eta_minutes']),
-      etaDatetime: json['eta_datetime'] as String?,
-      delayStatus: json['delay_status'] as String? ?? 'on_time',
-      delayReason: json['delay_reason'] as String?,
-      riskScore: _toInt(json['risk_score']) ?? 0,
-      riskLevel: json['risk_level'] as String? ?? 'low',
-      trafficLevel: json['traffic_level'] as String?,
+      pickupAddress: _toNonEmptyString(json['pickup_address']),
+      deliveryAddress: _toNonEmptyString(json['delivery_address']),
+      confirmationPin: _toNonEmptyString(json['confirmation_pin']),
+      hasPod: json['has_pod'] == true,
+      rating: _toInt(json['rating']),
+      feedback: _toNonEmptyString(json['feedback']),
     );
   }
 }
@@ -182,6 +179,11 @@ class GpsPoint {
       timestamp: json['timestamp'] as String?,
     );
   }
+}
+
+String? _toNonEmptyString(dynamic value) {
+  if (value is String && value.isNotEmpty) return value;
+  return null;
 }
 
 int? _toInt(dynamic value) {

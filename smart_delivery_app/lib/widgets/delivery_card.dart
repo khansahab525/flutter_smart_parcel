@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../models/delivery_model.dart';
 import '../theme/app_colors.dart';
 import 'common/status_chip.dart';
-import 'eta_badge.dart';
 
 class DeliveryCard extends StatelessWidget {
   final DeliveryModel delivery;
@@ -80,14 +79,7 @@ class DeliveryCard extends StatelessWidget {
                 const SizedBox(height: 14),
                 Row(
                   children: [
-                    EtaBadge(
-                      etaMinutes: delivery.etaMinutes,
-                      delayStatus: delivery.delayStatus,
-                    ),
                     const Spacer(),
-                    if (delivery.riskScore > 30)
-                      _RiskBadge(score: delivery.riskScore),
-                    const SizedBox(width: 8),
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 14,
@@ -129,39 +121,6 @@ class _MetaRow extends StatelessWidget {
         const SizedBox(width: 8),
         Text(text, style: Theme.of(context).textTheme.bodyMedium),
       ],
-    );
-  }
-}
-
-class _RiskBadge extends StatelessWidget {
-  final int score;
-
-  const _RiskBadge({required this.score});
-
-  @override
-  Widget build(BuildContext context) {
-    final color = score >= 60 ? AppColors.error : AppColors.warning;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.shield_outlined, size: 14, color: color),
-          const SizedBox(width: 4),
-          Text(
-            '$score',
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -3,18 +3,15 @@ import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
-import '../services/notification_service.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService;
-  final NotificationService? _notificationService;
   UserModel? _user;
   bool _isLoading = false;
   String? _error;
 
-  AuthProvider(ApiService apiService, [NotificationService? notificationService])
-      : _authService = AuthService(apiService),
-        _notificationService = notificationService;
+  AuthProvider(ApiService apiService)
+      : _authService = AuthService(apiService);
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
@@ -35,7 +32,6 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       _user = await _authService.login(email, password);
-      await _notificationService?.registerTokenWithBackend();
       _isLoading = false;
       notifyListeners();
       return true;
@@ -48,7 +44,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _notificationService?.unregisterToken();
     await _authService.logout();
     _user = null;
     notifyListeners();

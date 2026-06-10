@@ -5,13 +5,11 @@ import 'package:flutter/foundation.dart';
 import '../models/chat_message.dart';
 import '../models/delivery_model.dart';
 import '../services/delivery_service.dart';
-import '../services/notification_service.dart';
 import '../services/tracking_stream_service.dart';
 
 class TrackingProvider extends ChangeNotifier {
   final DeliveryService _deliveryService;
   final TrackingStreamService _streamService;
-  final NotificationService? _notificationService;
 
   TrackingData? _trackingData;
   List<ChatMessage> _messages = [];
@@ -22,11 +20,7 @@ class TrackingProvider extends ChangeNotifier {
   StreamSubscription<StreamEvent>? _streamSubscription;
   int? _trackingDeliveryId;
 
-  TrackingProvider(
-    this._deliveryService,
-    this._streamService, [
-    this._notificationService,
-  ]);
+  TrackingProvider(this._deliveryService, this._streamService);
 
   TrackingData? get trackingData => _trackingData;
   List<ChatMessage> get messages => _messages;
@@ -92,30 +86,6 @@ class TrackingProvider extends ChangeNotifier {
       );
       notifyListeners();
     }
-
-    if (event.type == 'notification' && _notificationService != null) {
-      final message = event.payload['message'] as String?;
-      final eventType = event.payload['event_type'] as String?;
-      if (message != null) {
-        _notificationService.showLocalNotification(
-          title: _titleForEvent(eventType),
-          body: message,
-          payload: _trackingDeliveryId?.toString(),
-        );
-      }
-    }
-  }
-
-  String _titleForEvent(String? eventType) {
-    const titles = {
-      'assigned': 'Driver Assigned',
-      'picked_up': 'Order Picked Up',
-      'in_transit': 'In Transit',
-      'nearby': 'Driver Nearby',
-      'delivered': 'Delivered',
-      'delayed': 'Delivery Delay',
-    };
-    return titles[eventType] ?? 'Delivery Update';
   }
 
   Future<void> sendMessage(String text) async {
@@ -139,6 +109,37 @@ class TrackingProvider extends ChangeNotifier {
       ));
       _isChatLoading = false;
       notifyListeners();
+    }
+  }
+
+  Future<bool> submitRating(int rating, String? feedback) async {
+    if (_trackingDeliveryId == null) return false;
+
+    try {
+      final updated = await _deliveryService.rateDelivery(
+        id: _trackingDeliveryId!,
+        rating: rating,
+        feedback: feedback,
+      );
+      if (_trackingData != null) {
+        _trackingData = TrackingData(
+          delivery: updated,
+          driverLat: _trackingData!.driverLat,
+          driverLng: _trackingData!.driverLng,
+          destLat: _trackingData!.destLat,
+          destLng: _trackingData!.destLng,
+          pickupLat: _trackingData!.pickupLat,
+          pickupLng: _trackingData!.pickupLng,
+          routeHistory: _trackingData!.routeHistory,
+          notifications: _trackingData!.notifications,
+        );
+      }
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
     }
   }
 

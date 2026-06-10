@@ -75,6 +75,60 @@ class DeliveryProvider extends ChangeNotifier {
     }
   }
 
+  Future<DeliveryModel?> createDelivery({
+    required String customerName,
+    String? customerPhone,
+    required double pickupLat,
+    required double pickupLng,
+    required double deliveryLat,
+    required double deliveryLng,
+    String? pickupAddress,
+    String? deliveryAddress,
+  }) async {
+    try {
+      final created = await _deliveryService.createDelivery(
+        customerName: customerName,
+        customerPhone: customerPhone,
+        pickupLat: pickupLat,
+        pickupLng: pickupLng,
+        deliveryLat: deliveryLat,
+        deliveryLng: deliveryLng,
+        pickupAddress: pickupAddress,
+        deliveryAddress: deliveryAddress,
+      );
+      _deliveries = [created, ..._deliveries];
+      notifyListeners();
+      return created;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return null;
+    }
+  }
+
+  Future<String?> completeDelivery({
+    required int id,
+    required String pin,
+    String? podImageBase64,
+    String? podSignatureBase64,
+  }) async {
+    try {
+      final updated = await _deliveryService.completeDelivery(
+        id: id,
+        pin: pin,
+        podImageBase64: podImageBase64,
+        podSignatureBase64: podSignatureBase64,
+      );
+      final index = _deliveries.indexWhere((d) => d.id == id);
+      if (index >= 0) _deliveries[index] = updated;
+      if (_activeDelivery?.id == id) _activeDelivery = updated;
+      notifyListeners();
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
   Future<void> startLocationTracking({
     required int driverId,
     required int deliveryId,

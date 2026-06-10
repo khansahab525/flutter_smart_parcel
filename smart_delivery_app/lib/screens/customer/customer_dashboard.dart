@@ -9,6 +9,7 @@ import '../../widgets/common/enterprise_app_bar.dart';
 import '../../widgets/common/gradient_header.dart';
 import '../../widgets/common/section_header.dart';
 import '../../widgets/delivery_card.dart';
+import 'create_order_screen.dart';
 import 'tracking_screen.dart';
 
 class CustomerDashboard extends StatefulWidget {
@@ -66,7 +67,26 @@ class _CustomerDashboardState extends State<CustomerDashboard> {
               onRefresh: () => delivery.loadDeliveries(),
               child: _buildBody(delivery),
             ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _openCreateOrder,
+        backgroundColor: AppColors.accent,
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
+        label: const Text(
+          'New Order',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+        ),
+      ),
     );
+  }
+
+  Future<void> _openCreateOrder() async {
+    final created = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const CreateOrderScreen()),
+    );
+    if (created == true && mounted) {
+      context.read<DeliveryProvider>().loadDeliveries();
+    }
   }
 
   Widget _buildBody(DeliveryProvider delivery) {

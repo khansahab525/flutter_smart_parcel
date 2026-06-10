@@ -46,27 +46,12 @@ abstract final class AppColors {
         return success;
       case 'cancelled':
         return error;
-      case 'high_risk':
-        return error;
-      case 'delayed':
-        return warning;
       case 'in_transit':
       case 'out_for_delivery':
       case 'picked_up':
         return accent;
       default:
         return info;
-    }
-  }
-
-  static Color delayColor(String delayStatus) {
-    switch (delayStatus) {
-      case 'delayed':
-        return warning;
-      case 'high_risk':
-        return error;
-      default:
-        return success;
     }
   }
 }

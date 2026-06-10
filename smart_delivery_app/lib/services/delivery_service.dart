@@ -45,6 +45,66 @@ class DeliveryService {
     return DeliveryModel.fromJson(response['data'] as Map<String, dynamic>);
   }
 
+  Future<DeliveryModel> createDelivery({
+    required String customerName,
+    String? customerPhone,
+    required double pickupLat,
+    required double pickupLng,
+    required double deliveryLat,
+    required double deliveryLng,
+    String? pickupAddress,
+    String? deliveryAddress,
+  }) async {
+    final response = await _api.post(
+      ApiConfig.deliveryCreateEndpoint,
+      body: {
+        'customer_name': customerName,
+        if (customerPhone != null && customerPhone.isNotEmpty)
+          'customer_phone': customerPhone,
+        'pickup_lat': pickupLat,
+        'pickup_lng': pickupLng,
+        'delivery_lat': deliveryLat,
+        'delivery_lng': deliveryLng,
+        if (pickupAddress != null) 'pickup_address': pickupAddress,
+        if (deliveryAddress != null) 'delivery_address': deliveryAddress,
+        if (_api.userId != null) 'customer_user_id': _api.userId,
+      },
+    );
+    return DeliveryModel.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  Future<DeliveryModel> completeDelivery({
+    required int id,
+    required String pin,
+    String? podImageBase64,
+    String? podSignatureBase64,
+  }) async {
+    final response = await _api.post(
+      ApiConfig.deliveryComplete(id),
+      body: {
+        'pin': pin,
+        if (podImageBase64 != null) 'pod_image': podImageBase64,
+        if (podSignatureBase64 != null) 'pod_signature': podSignatureBase64,
+      },
+    );
+    return DeliveryModel.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  Future<DeliveryModel> rateDelivery({
+    required int id,
+    required int rating,
+    String? feedback,
+  }) async {
+    final response = await _api.post(
+      ApiConfig.deliveryRate(id),
+      body: {
+        'rating': rating,
+        if (feedback != null && feedback.isNotEmpty) 'feedback': feedback,
+      },
+    );
+    return DeliveryModel.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
   Future<DeliveryModel> updateLocation({
     required int driverId,
     required int deliveryId,

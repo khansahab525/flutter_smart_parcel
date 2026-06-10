@@ -8,7 +8,7 @@ import '../../theme/app_colors.dart';
 import '../../widgets/common/enterprise_app_bar.dart';
 import '../../widgets/common/info_card.dart';
 import '../../widgets/common/status_chip.dart' show StatusChip, LiveBadge;
-import '../../widgets/eta_badge.dart';
+import 'complete_delivery_screen.dart';
 
 class DeliveryDetailScreen extends StatefulWidget {
   const DeliveryDetailScreen({super.key});
@@ -85,42 +85,7 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
               title: 'Delivery Status',
               icon: Icons.local_shipping_outlined,
               trailing: StatusChip(status: order.status),
-              children: [
-                Row(
-                  children: [
-                    EtaBadge(
-                      etaMinutes: order.etaMinutes,
-                      delayStatus: order.delayStatus,
-                    ),
-                  ],
-                ),
-                if (order.delayReason != null &&
-                    order.delayReason!.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AppColors.warningBg,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.info_outline, color: AppColors.warning, size: 18),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            order.delayReason!,
-                            style: const TextStyle(
-                              color: AppColors.warning,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ],
+              children: const [],
             ),
             const SizedBox(height: 16),
             InfoCard(
@@ -130,13 +95,13 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
                 InfoRow(
                   icon: Icons.store_outlined,
                   label: 'Pickup',
-                  value:
+                  value: order.pickupAddress ??
                       '${order.pickupLat.toStringAsFixed(4)}, ${order.pickupLng.toStringAsFixed(4)}',
                 ),
                 InfoRow(
                   icon: Icons.home_outlined,
                   label: 'Drop-off',
-                  value:
+                  value: order.deliveryAddress ??
                       '${order.deliveryLat.toStringAsFixed(4)}, ${order.deliveryLng.toStringAsFixed(4)}',
                 ),
                 if (order.currentLat != null)
@@ -146,31 +111,6 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
                     value:
                         '${order.currentLat!.toStringAsFixed(4)}, ${order.currentLng!.toStringAsFixed(4)}',
                   ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            InfoCard(
-              title: 'Risk Assessment',
-              icon: Icons.shield_outlined,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: order.riskScore / 100,
-                    minHeight: 8,
-                    backgroundColor: AppColors.borderLight,
-                    color: order.riskScore >= 60
-                        ? AppColors.error
-                        : order.riskScore >= 30
-                            ? AppColors.warning
-                            : AppColors.success,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Score: ${order.riskScore}/100 · ${order.riskLevel.toUpperCase()}',
-                  style: Theme.of(context).textTheme.bodyMedium,
-                ),
               ],
             ),
             const SizedBox(height: 28),
@@ -187,9 +127,15 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
             if (delivery.isTrackingLocation && nextStatus != null) ...[
               const SizedBox(height: 12),
               ElevatedButton.icon(
-                onPressed: () => _updateStatus(delivery, order.id, nextStatus),
-                icon: const Icon(Icons.arrow_forward_rounded),
-                label: Text('Mark as ${_formatStatus(nextStatus)}'),
+                onPressed: () => nextStatus == 'delivered'
+                    ? _openCompleteDelivery(delivery, order)
+                    : _updateStatus(delivery, order.id, nextStatus),
+                icon: Icon(nextStatus == 'delivered'
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.arrow_forward_rounded),
+                label: Text(nextStatus == 'delivered'
+                    ? 'Complete Delivery'
+                    : 'Mark as ${_formatStatus(nextStatus)}'),
                 style: const ButtonStyle(
                   minimumSize: WidgetStatePropertyAll(Size(double.infinity, 52)),
                 ),
@@ -220,6 +166,21 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
 
   String _formatStatus(String s) =>
       s.replaceAll('_', ' ').split(' ').map((w) => '${w[0].toUpperCase()}${w.substring(1)}').join(' ');
+
+  Future<void> _openCompleteDelivery(
+    DeliveryProvider delivery,
+    DeliveryModel order,
+  ) async {
+    final completed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CompleteDeliveryScreen(order: order),
+      ),
+    );
+    if (completed == true) {
+      delivery.stopLocationTracking();
+    }
+  }
 
   Future<void> _startDelivery(
     AuthProvider auth,
