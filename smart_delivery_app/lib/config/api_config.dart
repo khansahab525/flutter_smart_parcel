@@ -1,7 +1,7 @@
 class ApiConfig {
   /// Odoo server URL (ngrok tunnel).
   static const String baseUrl =
-      'https://e4b1-2a02-cb80-4144-6f81-f124-cf05-2d8-2fa6.ngrok-free.app';
+      'https://eca4-2a02-cb80-4144-6f81-254f-4f5a-df8b-4a48.ngrok-free.app';
 
   /// Odoo database name — must match your database exactly.
   static const String defaultDatabase = 'smart_delivery';
