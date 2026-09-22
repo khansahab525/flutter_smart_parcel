@@ -10,8 +10,7 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _error;
 
-  AuthProvider(ApiService apiService)
-      : _authService = AuthService(apiService);
+  AuthProvider(ApiService apiService) : _authService = AuthService(apiService);
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
@@ -25,13 +24,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String username, String password) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
 
     try {
-      _user = await _authService.login(email, password);
+      _user = await _authService.login(username, password);
       _isLoading = false;
       notifyListeners();
       return true;
@@ -40,6 +39,54 @@ class AuthProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return false;
+    }
+  }
+
+  Future<bool> register({
+    required String name,
+    required String username,
+    required String email,
+    required String phone,
+    required String password,
+  }) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      _user = await _authService.register(
+        name: name,
+        username: username,
+        email: email,
+        phone: phone,
+        password: password,
+      );
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<String?> forgotPassword(String email) async {
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final message = await _authService.forgotPassword(email);
+      _isLoading = false;
+      notifyListeners();
+      return message;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return null;
     }
   }
 

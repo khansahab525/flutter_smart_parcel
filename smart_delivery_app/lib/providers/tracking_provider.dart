@@ -144,12 +144,17 @@ class TrackingProvider extends ChangeNotifier {
   }
 
   void stopTracking() {
-    _streamSubscription?.cancel();
-    _streamSubscription = null;
-    _streamService.stop();
+    pauseTracking();
     _trackingDeliveryId = null;
     _trackingData = null;
     _messages = [];
+    notifyListeners();
+  }
+
+  void pauseTracking() {
+    _streamSubscription?.cancel();
+    _streamSubscription = null;
+    _streamService.stop();
     _isLiveConnected = false;
     notifyListeners();
   }

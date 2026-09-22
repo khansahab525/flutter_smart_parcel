@@ -207,7 +207,9 @@ class _DeliveryDetailScreenState extends State<DeliveryDetailScreen> {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('GPS tracking active — updates every 5 minutes'),
+          content: Text(
+            'GPS tracking active — updates while moving',
+          ),
           backgroundColor: AppColors.success,
         ),
       );

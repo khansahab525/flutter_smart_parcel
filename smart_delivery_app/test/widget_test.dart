@@ -18,9 +18,7 @@ void main() {
     await tester.pumpWidget(
       MultiProvider(
         providers: [
-          ChangeNotifierProvider(
-            create: (_) => AuthProvider(apiService),
-          ),
+          ChangeNotifierProvider(create: (_) => AuthProvider(apiService)),
           ChangeNotifierProvider(
             create: (_) => DeliveryProvider(
               DeliveryService(apiService),
@@ -37,5 +35,6 @@ void main() {
 
     expect(find.text('SmartDelivery'), findsOneWidget);
     expect(find.text('Sign In'), findsOneWidget);
+    expect(find.text('Create Customer Account'), findsOneWidget);
   });
 }

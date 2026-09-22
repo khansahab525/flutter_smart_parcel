@@ -33,7 +33,7 @@ class LocationService {
     );
   }
 
-  /// Start periodic location updates every 5 minutes for driver background tracking.
+  /// Send a heartbeat location update every 30 seconds during a delivery.
   void startPeriodicUpdates(void Function(Position) onUpdate) {
     _onLocationUpdate = onUpdate;
     _periodicTimer?.cancel();
@@ -54,7 +54,7 @@ class LocationService {
     _positionSubscription = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
-        distanceFilter: 50,
+        distanceFilter: 35,
       ),
     ).listen(onUpdate);
   }

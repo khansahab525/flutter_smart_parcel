@@ -1,19 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../models/delivery_model.dart';
 import '../theme/app_colors.dart';
 import 'common/status_chip.dart';
+import 'driver_avatar.dart';
 
 class DeliveryCard extends StatelessWidget {
   final DeliveryModel delivery;
   final VoidCallback? onTap;
   final VoidCallback? onStart;
+  final VoidCallback? onCancel;
 
   const DeliveryCard({
     super.key,
     required this.delivery,
     this.onTap,
     this.onStart,
+    this.onCancel,
   });
 
   @override
@@ -37,18 +41,26 @@ class DeliveryCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: AppColors.accent.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                    if (delivery.driver?.id != null)
+                      DriverAvatar(
+                        name: delivery.driver?.name ?? 'Driver',
+                        imageBase64:
+                            delivery.driver?.profileImageBase64,
+                        radius: 22,
+                      )
+                    else
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.accent.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.inventory_2_outlined,
+                          color: AppColors.accent,
+                          size: 22,
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.inventory_2_outlined,
-                        color: AppColors.accent,
-                        size: 22,
-                      ),
-                    ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
@@ -76,9 +88,44 @@ class DeliveryCard extends StatelessWidget {
                     text: delivery.driver!.name!,
                   ),
                 ],
+                if (delivery.parcelSize != null ||
+                    delivery.parcelWeightKg != null) ...[
+                  const SizedBox(height: 10),
+                  _MetaRow(
+                    icon: delivery.isFragile
+                        ? Icons.warning_amber_rounded
+                        : Icons.inventory_2_outlined,
+                    text: [
+                      if (delivery.parcelSize != null)
+                        delivery.parcelSize!.label,
+                      if (delivery.parcelWeightKg != null)
+                        '${delivery.parcelWeightKg!.toStringAsFixed(1)} kg',
+                      if (delivery.isFragile) 'Fragile',
+                    ].join(' • '),
+                  ),
+                ],
+                if (delivery.scheduledAt != null) ...[
+                  const SizedBox(height: 10),
+                  _MetaRow(
+                    icon: Icons.schedule_outlined,
+                    text: DateFormat(
+                      'd MMM, h:mm a',
+                    ).format(delivery.scheduledAt!),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Row(
                   children: [
+                    if (delivery.estimatedPrice != null)
+                      Text(
+                        NumberFormat.simpleCurrency(
+                          name: delivery.currencyCode ?? 'USD',
+                        ).format(delivery.estimatedPrice),
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     const Spacer(),
                     Icon(
                       Icons.arrow_forward_ios_rounded,
@@ -95,6 +142,21 @@ class DeliveryCard extends StatelessWidget {
                       onPressed: onStart,
                       icon: const Icon(Icons.play_arrow_rounded, size: 20),
                       label: const Text('Start Delivery'),
+                    ),
+                  ),
+                ],
+                if (onCancel != null && delivery.canCustomerCancel) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: onCancel,
+                      icon: const Icon(Icons.cancel_outlined, size: 19),
+                      label: const Text('Cancel Order'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.error,
+                        side: const BorderSide(color: AppColors.error),
+                      ),
                     ),
                   ),
                 ],

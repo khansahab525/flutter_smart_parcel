@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
 import 'screens/customer/customer_dashboard.dart';
-import 'screens/driver/driver_dashboard.dart';
+import 'screens/driver/driver_portal_screen.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 
@@ -33,7 +33,7 @@ class AuthGate extends StatelessWidget {
     }
 
     if (auth.isDriver) {
-      return const DriverDashboard();
+      return const DriverPortalScreen();
     }
 
     return const CustomerDashboard();

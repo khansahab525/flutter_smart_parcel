@@ -6,18 +6,25 @@ class SectionHeader extends StatelessWidget {
   final String title;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final double horizontalPadding;
 
   const SectionHeader({
     super.key,
     required this.title,
     this.actionLabel,
     this.onAction,
+    this.horizontalPadding = 20,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+      padding: EdgeInsets.fromLTRB(
+        horizontalPadding,
+        20,
+        horizontalPadding,
+        12,
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -31,6 +38,15 @@ class SectionHeader extends StatelessWidget {
                   color: AppColors.accent,
                   fontWeight: FontWeight.w600,
                 ),
+              ),
+            ),
+          if (actionLabel != null && onAction == null)
+            Text(
+              actionLabel!,
+              style: const TextStyle(
+                color: AppColors.textMuted,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
               ),
             ),
         ],

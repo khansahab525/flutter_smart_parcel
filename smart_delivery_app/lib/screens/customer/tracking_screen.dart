@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/delivery_model.dart';
+import '../../providers/delivery_provider.dart';
 import '../../providers/tracking_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../utils/geo_utils.dart';
@@ -20,10 +21,12 @@ class TrackingScreen extends StatefulWidget {
   State<TrackingScreen> createState() => _TrackingScreenState();
 }
 
-class _TrackingScreenState extends State<TrackingScreen> {
+class _TrackingScreenState extends State<TrackingScreen>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<TrackingProvider>().startTracking(widget.deliveryId);
     });
@@ -31,8 +34,21 @@ class _TrackingScreenState extends State<TrackingScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     context.read<TrackingProvider>().stopTracking();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final tracking = context.read<TrackingProvider>();
+    if (state == AppLifecycleState.resumed) {
+      tracking.startTracking(widget.deliveryId);
+    } else if (
+        state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      tracking.pauseTracking();
+    }
   }
 
   @override
@@ -50,6 +66,12 @@ class _TrackingScreenState extends State<TrackingScreen> {
         ),
         actions: [
           if (tracking.isLiveConnected) const LiveBadge(),
+          if (tracking.delivery?.canCustomerCancel == true)
+            AppBarIconButton(
+              icon: Icons.cancel_outlined,
+              tooltip: 'Cancel order',
+              onPressed: () => _cancelOrder(tracking.delivery!),
+            ),
           AppBarIconButton(
             icon: Icons.smart_toy_outlined,
             tooltip: 'AI Assistant',
@@ -70,7 +92,7 @@ class _TrackingScreenState extends State<TrackingScreen> {
                   child: Padding(
                     padding: const EdgeInsets.all(32),
                     child: Text(
-                      tracking.error ?? 'Unable to load tracking',
+                      'Tracking is temporarily unavailable.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
@@ -78,6 +100,46 @@ class _TrackingScreenState extends State<TrackingScreen> {
                 )
               : _buildTrackingView(tracking),
     );
+  }
+
+  Future<void> _cancelOrder(DeliveryModel order) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Cancel this order?'),
+        content: const Text(
+          'Cancellation is available only before the driver starts the trip.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep Order'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Cancel Order'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final delivery = context.read<DeliveryProvider>();
+    final success = await delivery.cancelDelivery(order.id);
+    if (!mounted) return;
+    if (success) {
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text(
+            'Unable to cancel the order. Please try again.',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
   }
 
   Widget _buildTrackingView(TrackingProvider tracking) {

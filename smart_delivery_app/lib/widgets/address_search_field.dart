@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../services/geocoding_service.dart';
 import '../theme/app_colors.dart';
+import 'address_map_picker.dart';
 
 /// Address text field with live OpenStreetMap (Nominatim) suggestions.
 class AddressSearchField extends StatefulWidget {
@@ -74,6 +75,19 @@ class _AddressSearchFieldState extends State<AddressSearchField> {
     widget.onSelected(result);
   }
 
+  Future<void> _pickFromMap() async {
+    final result = await Navigator.push<GeocodingResult>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddressMapPickerPage(
+          title: 'Select ${widget.label}',
+          initialLocation: _selected,
+        ),
+      ),
+    );
+    if (result != null) _select(result);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -86,8 +100,11 @@ class _AddressSearchFieldState extends State<AddressSearchField> {
             labelText: widget.label,
             hintText: 'Search address...',
             prefixIcon: Icon(widget.icon),
-            suffixIcon: _isSearching
-                ? const Padding(
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_isSearching)
+                  const Padding(
                     padding: EdgeInsets.all(12),
                     child: SizedBox(
                       width: 18,
@@ -95,9 +112,21 @@ class _AddressSearchFieldState extends State<AddressSearchField> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   )
-                : _selected != null
-                    ? const Icon(Icons.check_circle, color: AppColors.success)
-                    : null,
+                else if (_selected != null)
+                  const Icon(
+                    Icons.check_circle,
+                    color: AppColors.success,
+                  ),
+                IconButton(
+                  tooltip: 'Pick on map',
+                  onPressed: _pickFromMap,
+                  icon: const Icon(
+                    Icons.map_outlined,
+                    color: AppColors.accent,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
         if (_results.isNotEmpty)

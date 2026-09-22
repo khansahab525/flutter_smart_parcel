@@ -17,6 +17,7 @@ class GeocodingResult {
 /// Free address search using the OpenStreetMap Nominatim API.
 class GeocodingService {
   static const _baseUrl = 'https://nominatim.openstreetmap.org/search';
+  static const _reverseUrl = 'https://nominatim.openstreetmap.org/reverse';
 
   // Nominatim usage policy requires a valid User-Agent identifying the app.
   static const _headers = {
@@ -50,5 +51,30 @@ class GeocodingService {
             ))
         .where((r) => r.displayName.isNotEmpty)
         .toList();
+  }
+
+  Future<GeocodingResult> reverse(double latitude, double longitude) async {
+    final uri = Uri.parse(_reverseUrl).replace(queryParameters: {
+      'lat': latitude.toString(),
+      'lon': longitude.toString(),
+      'format': 'json',
+      'zoom': '18',
+      'addressdetails': '0',
+    });
+
+    final response = await http.get(uri, headers: _headers);
+    if (response.statusCode != 200) {
+      throw Exception('Address lookup failed (${response.statusCode})');
+    }
+
+    final data = json.decode(response.body) as Map<String, dynamic>;
+    final displayName = data['display_name'] as String?;
+    return GeocodingResult(
+      displayName: displayName?.isNotEmpty == true
+          ? displayName!
+          : '${latitude.toStringAsFixed(6)}, ${longitude.toStringAsFixed(6)}',
+      latitude: latitude,
+      longitude: longitude,
+    );
   }
 }

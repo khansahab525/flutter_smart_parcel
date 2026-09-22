@@ -1,7 +1,10 @@
+import 'delivery_request.dart';
+
 class DriverInfo {
   final int? id;
   final String? name;
   final String? phone;
+  final String? profileImageBase64;
   final double? currentLat;
   final double? currentLng;
 
@@ -9,6 +12,7 @@ class DriverInfo {
     this.id,
     this.name,
     this.phone,
+    this.profileImageBase64,
     this.currentLat,
     this.currentLng,
   });
@@ -21,6 +25,7 @@ class DriverInfo {
       id: _toInt(json['id']),
       name: json['name'] as String?,
       phone: json['phone'] as String?,
+      profileImageBase64: _toNonEmptyString(json['profile_image']),
       currentLat: _toDouble(json['current_lat']),
       currentLng: _toDouble(json['current_lng']),
     );
@@ -33,6 +38,9 @@ class DeliveryModel {
   final String customerName;
   final String? customerPhone;
   final String status;
+  final String? assignmentMethod;
+  final int pendingOfferCount;
+  final DateTime? offerExpiresAt;
   final double pickupLat;
   final double pickupLng;
   final double deliveryLat;
@@ -46,6 +54,15 @@ class DeliveryModel {
   final bool hasPod;
   final int? rating;
   final String? feedback;
+  final ParcelSize? parcelSize;
+  final double? parcelWeightKg;
+  final String? parcelDescription;
+  final bool isFragile;
+  final String? deliveryNotes;
+  final DateTime? scheduledAt;
+  final double? estimatedDistanceKm;
+  final double? estimatedPrice;
+  final String? currencyCode;
 
   const DeliveryModel({
     required this.id,
@@ -53,6 +70,9 @@ class DeliveryModel {
     required this.customerName,
     this.customerPhone,
     required this.status,
+    this.assignmentMethod,
+    this.pendingOfferCount = 0,
+    this.offerExpiresAt,
     required this.pickupLat,
     required this.pickupLng,
     required this.deliveryLat,
@@ -66,14 +86,30 @@ class DeliveryModel {
     this.hasPod = false,
     this.rating,
     this.feedback,
+    this.parcelSize,
+    this.parcelWeightKg,
+    this.parcelDescription,
+    this.isFragile = false,
+    this.deliveryNotes,
+    this.scheduledAt,
+    this.estimatedDistanceKm,
+    this.estimatedPrice,
+    this.currencyCode,
   });
 
-  bool get isActive =>
-      !['delivered', 'cancelled'].contains(status);
+  bool get isActive => !['delivered', 'cancelled'].contains(status);
+  bool get canCustomerCancel => const {
+    'created',
+    'finding_driver',
+    'awaiting_acceptance',
+    'assigned',
+  }.contains(status);
 
   String get statusLabel {
     const labels = {
       'created': 'Created',
+      'finding_driver': 'Finding Driver',
+      'awaiting_acceptance': 'Awaiting Driver',
       'assigned': 'Assigned',
       'picked_up': 'Picked Up',
       'in_transit': 'In Transit',
@@ -91,6 +127,9 @@ class DeliveryModel {
       customerName: json['customer_name'] as String? ?? '',
       customerPhone: json['customer_phone'] as String?,
       status: json['status'] as String? ?? 'created',
+      assignmentMethod: _toNonEmptyString(json['assignment_method']),
+      pendingOfferCount: _toInt(json['pending_offer_count']) ?? 0,
+      offerExpiresAt: _toDateTime(json['offer_expires_at']),
       pickupLat: _toDouble(json['pickup_lat']) ?? 0,
       pickupLng: _toDouble(json['pickup_lng']) ?? 0,
       deliveryLat: _toDouble(json['delivery_lat']) ?? 0,
@@ -104,6 +143,17 @@ class DeliveryModel {
       hasPod: json['has_pod'] == true,
       rating: _toInt(json['rating']),
       feedback: _toNonEmptyString(json['feedback']),
+      parcelSize: ParcelSize.fromApiValue(
+        _toNonEmptyString(json['parcel_size']),
+      ),
+      parcelWeightKg: _toDouble(json['parcel_weight_kg']),
+      parcelDescription: _toNonEmptyString(json['parcel_description']),
+      isFragile: json['is_fragile'] == true,
+      deliveryNotes: _toNonEmptyString(json['delivery_notes']),
+      scheduledAt: _toDateTime(json['scheduled_at']),
+      estimatedDistanceKm: _toDouble(json['estimated_distance_km']),
+      estimatedPrice: _toDouble(json['estimated_price']),
+      currencyCode: _toNonEmptyString(json['currency']),
     );
   }
 }
@@ -200,4 +250,9 @@ double? _toDouble(dynamic value) {
   if (value is int) return value.toDouble();
   if (value is String) return double.tryParse(value);
   return null;
+}
+
+DateTime? _toDateTime(dynamic value) {
+  if (value is! String || value.isEmpty) return null;
+  return DateTime.tryParse(value)?.toLocal();
 }

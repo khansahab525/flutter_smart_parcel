@@ -44,9 +44,9 @@ class TrackingStreamService {
   final ApiService _api;
   http.Client? _sseClient;
   StreamSubscription<String>? _sseSubscription;
-  Timer? _pollTimer;
   int _lastEventId = 0;
   bool _useStream = true;
+  int _generation = 0;
 
   final _eventController = StreamController<StreamEvent>.broadcast();
   Stream<StreamEvent> get events => _eventController.stream;
@@ -55,10 +55,12 @@ class TrackingStreamService {
 
   void start(int deliveryId) {
     stop();
+    _useStream = true;
+    final generation = _generation;
     if (_useStream) {
-      _connectSse(deliveryId);
+      _connectSse(deliveryId, generation);
     } else {
-      _startPolling(deliveryId);
+      _startPolling(deliveryId, generation);
     }
   }
 
@@ -67,8 +69,7 @@ class TrackingStreamService {
     _sseSubscription = null;
     _sseClient?.close();
     _sseClient = null;
-    _pollTimer?.cancel();
-    _pollTimer = null;
+    _generation++;
     _lastEventId = 0;
   }
 
@@ -77,12 +78,11 @@ class TrackingStreamService {
     _eventController.close();
   }
 
-  Future<void> _connectSse(int deliveryId) async {
+  Future<void> _connectSse(int deliveryId, int generation) async {
     try {
       final uri = Uri.parse(
         '${ApiConfig.baseUrl}${ApiConfig.trackingStream(deliveryId)}',
       ).replace(queryParameters: {
-        'db': ApiConfig.defaultDatabase,
         'last_event_id': '$_lastEventId',
       });
       final request = http.Request('GET', uri);
@@ -94,9 +94,10 @@ class TrackingStreamService {
 
       _sseClient = http.Client();
       final response = await _sseClient!.send(request);
+      if (generation != _generation) return;
 
       if (response.statusCode != 200) {
-        _fallbackToPolling(deliveryId);
+        _fallbackToPolling(deliveryId, generation);
         return;
       }
 
@@ -113,15 +114,20 @@ class TrackingStreamService {
             _parseSseBlock(block);
           }
         },
-        onError: (_) => _fallbackToPolling(deliveryId),
+        onError: (_) => _fallbackToPolling(deliveryId, generation),
         onDone: () {
           Future.delayed(ApiConfig.streamReconnectDelay, () {
-            if (_sseClient != null) _connectSse(deliveryId);
+            if (
+                generation == _generation &&
+                _sseClient != null &&
+                _useStream) {
+              _connectSse(deliveryId, generation);
+            }
           });
         },
       );
     } catch (_) {
-      _fallbackToPolling(deliveryId);
+      _fallbackToPolling(deliveryId, generation);
     }
   }
 
@@ -157,22 +163,24 @@ class TrackingStreamService {
     } catch (_) {}
   }
 
-  void _fallbackToPolling(int deliveryId) {
+  void _fallbackToPolling(int deliveryId, int generation) {
+    if (generation != _generation || !_useStream) return;
     _useStream = false;
     _sseSubscription?.cancel();
     _sseClient?.close();
     _sseClient = null;
-    _startPolling(deliveryId);
+    _startPolling(deliveryId, generation);
   }
 
-  void _startPolling(int deliveryId) {
-    _pollTimer?.cancel();
-    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+  Future<void> _startPolling(int deliveryId, int generation) async {
+    var retrySeconds = 2;
+    while (generation == _generation && !_useStream) {
       try {
         final response = await _api.get(
           '${ApiConfig.trackingPoll(deliveryId)}'
-          '?last_event_id=$_lastEventId&timeout=10',
+          '?last_event_id=$_lastEventId&timeout=25',
         );
+        if (generation != _generation) return;
         final data = response['data'] as Map<String, dynamic>;
         final events = data['events'] as List<dynamic>? ?? [];
 
@@ -188,7 +196,11 @@ class TrackingStreamService {
             payload: {'delivery': data['delivery']},
           ));
         }
-      } catch (_) {}
-    });
+        retrySeconds = 2;
+      } catch (_) {
+        await Future<void>.delayed(Duration(seconds: retrySeconds));
+        retrySeconds = retrySeconds >= 15 ? 30 : retrySeconds * 2;
+      }
+    }
   }
 }

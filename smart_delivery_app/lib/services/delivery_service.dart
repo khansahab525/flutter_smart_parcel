@@ -1,5 +1,7 @@
 import '../config/api_config.dart';
 import '../models/delivery_model.dart';
+import '../models/delivery_request.dart';
+import '../models/driver_assignment.dart';
 import 'api_service.dart';
 
 class DeliveryService {
@@ -22,14 +24,38 @@ class DeliveryService {
     final deliveries = <DeliveryModel>[];
     for (final item in raw) {
       try {
-        deliveries.add(
-          DeliveryModel.fromJson(item as Map<String, dynamic>),
-        );
+        deliveries.add(DeliveryModel.fromJson(item as Map<String, dynamic>));
       } catch (e) {
         throw ApiException('Failed to parse delivery: $e');
       }
     }
     return deliveries;
+  }
+
+  Future<List<DeliveryModel>?> pollDeliveries(
+    List<DeliveryModel> current,
+  ) async {
+    final knownState = current
+        .map((item) => '${item.id}:${item.status}:${item.driver?.id ?? 0}')
+        .join(',');
+    final query = Uri(
+      queryParameters: {
+        'known_state': knownState,
+        'timeout': '25',
+      },
+    ).query;
+    final response = await _api.get(
+      '${ApiConfig.deliveryListPollEndpoint}?$query',
+    );
+    final data = response['data'] as Map<String, dynamic>;
+    if (data['changed'] != true) return null;
+
+    final raw = data['deliveries'] as List<dynamic>? ?? [];
+    return raw
+        .map((item) => DeliveryModel.fromJson(
+              item as Map<String, dynamic>,
+            ))
+        .toList();
   }
 
   Future<DeliveryModel> getDelivery(int id) async {
@@ -45,32 +71,108 @@ class DeliveryService {
     return DeliveryModel.fromJson(response['data'] as Map<String, dynamic>);
   }
 
-  Future<DeliveryModel> createDelivery({
-    required String customerName,
-    String? customerPhone,
-    required double pickupLat,
-    required double pickupLng,
-    required double deliveryLat,
-    required double deliveryLng,
-    String? pickupAddress,
-    String? deliveryAddress,
-  }) async {
+  Future<DeliveryModel> createDelivery(DeliveryRequest request) async {
     final response = await _api.post(
       ApiConfig.deliveryCreateEndpoint,
       body: {
-        'customer_name': customerName,
-        if (customerPhone != null && customerPhone.isNotEmpty)
-          'customer_phone': customerPhone,
-        'pickup_lat': pickupLat,
-        'pickup_lng': pickupLng,
-        'delivery_lat': deliveryLat,
-        'delivery_lng': deliveryLng,
-        if (pickupAddress != null) 'pickup_address': pickupAddress,
-        if (deliveryAddress != null) 'delivery_address': deliveryAddress,
+        ...request.toJson(),
         if (_api.userId != null) 'customer_user_id': _api.userId,
       },
     );
     return DeliveryModel.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  Future<List<AvailableDriver>> getAvailableDrivers({
+    String? search,
+    double? pickupLat,
+    double? pickupLng,
+  }) async {
+    final query = Uri(
+      queryParameters: {
+        if (search != null && search.trim().isNotEmpty)
+          'search': search.trim(),
+        if (pickupLat != null) 'pickup_lat': '$pickupLat',
+        if (pickupLng != null) 'pickup_lng': '$pickupLng',
+      },
+    ).query;
+    final endpoint = query.isEmpty
+        ? ApiConfig.availableDriversEndpoint
+        : '${ApiConfig.availableDriversEndpoint}?$query';
+    final response = await _api.get(endpoint);
+    final raw = response['data'] as List<dynamic>? ?? [];
+    return raw
+        .map((item) => AvailableDriver.fromJson(
+              item as Map<String, dynamic>,
+            ))
+        .toList();
+  }
+
+  Future<List<DeliveryOffer>> getDriverOffers() async {
+    final response = await _api.get(ApiConfig.driverOffersEndpoint);
+    final raw = response['data'] as List<dynamic>? ?? [];
+    return raw
+        .map((item) => DeliveryOffer.fromJson(
+              item as Map<String, dynamic>,
+            ))
+        .toList();
+  }
+
+  Future<List<DeliveryOffer>> pollDriverOffers(
+    List<int> knownOfferIds,
+  ) async {
+    final query = Uri(
+      queryParameters: {
+        'known_offer_ids': knownOfferIds.join(','),
+        'timeout': '25',
+      },
+    ).query;
+    final response = await _api.get(
+      '${ApiConfig.driverOfferPollEndpoint}?$query',
+    );
+    final data = response['data'] as Map<String, dynamic>;
+    final raw = data['offers'] as List<dynamic>? ?? [];
+    return raw
+        .map((item) => DeliveryOffer.fromJson(
+              item as Map<String, dynamic>,
+            ))
+        .toList();
+  }
+
+  Future<DeliveryModel> acceptDriverOffer(int offerId) async {
+    final response = await _api.post(ApiConfig.acceptDriverOffer(offerId));
+    return DeliveryModel.fromJson(
+      response['data'] as Map<String, dynamic>,
+    );
+  }
+
+  Future<DeliveryModel> rejectDriverOffer(int offerId) async {
+    final response = await _api.post(ApiConfig.rejectDriverOffer(offerId));
+    return DeliveryModel.fromJson(
+      response['data'] as Map<String, dynamic>,
+    );
+  }
+
+  Future<void> updateAvailabilityLocation({
+    required double latitude,
+    required double longitude,
+  }) async {
+    await _api.post(
+      ApiConfig.driverAvailabilityLocationEndpoint,
+      body: {
+        'latitude': latitude,
+        'longitude': longitude,
+      },
+    );
+  }
+
+  Future<AvailableDriver> setDriverConnection(bool connected) async {
+    final response = await _api.post(
+      ApiConfig.driverAvailabilityEndpoint,
+      body: {'connected': connected},
+    );
+    return AvailableDriver.fromJson(
+      response['data'] as Map<String, dynamic>,
+    );
   }
 
   Future<DeliveryModel> completeDelivery({
@@ -88,6 +190,13 @@ class DeliveryService {
       },
     );
     return DeliveryModel.fromJson(response['data'] as Map<String, dynamic>);
+  }
+
+  Future<DeliveryModel> cancelDelivery(int id) async {
+    final response = await _api.post(ApiConfig.deliveryCancel(id));
+    return DeliveryModel.fromJson(
+      response['data'] as Map<String, dynamic>,
+    );
   }
 
   Future<DeliveryModel> rateDelivery({

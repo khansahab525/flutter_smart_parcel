@@ -26,7 +26,6 @@ class ApiService {
     final uri = Uri.parse('${ApiConfig.baseUrl}$endpoint');
     final params = {
       ...uri.queryParameters,
-      'db': ApiConfig.defaultDatabase,
       if (_userId != null) 'user_id': '$_userId',
     };
     return uri.replace(queryParameters: params);

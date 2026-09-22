@@ -5,6 +5,8 @@ import '../providers/auth_provider.dart';
 import '../providers/delivery_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/common/app_logo.dart';
+import 'forgot_password_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -15,13 +17,13 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
@@ -31,7 +33,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     final auth = context.read<AuthProvider>();
     final success = await auth.login(
-      _emailController.text.trim(),
+      _usernameController.text.trim(),
       _passwordController.text,
     );
 
@@ -41,8 +43,8 @@ class _LoginScreenState extends State<LoginScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(auth.error ?? 'Login failed'),
-          backgroundColor: AppColors.error,
+          content: const Text('Incorrect username or password'),
+          backgroundColor: AppColors.primary,
         ),
       );
     }
@@ -101,12 +103,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(height: 28),
                             TextFormField(
-                              controller: _emailController,
+                              controller: _usernameController,
                               decoration: const InputDecoration(
-                                labelText: 'Email / Username',
+                                labelText: 'Username',
                                 prefixIcon: Icon(Icons.person_outline_rounded),
                               ),
-                              keyboardType: TextInputType.emailAddress,
+                              autofillHints: const [AutofillHints.username],
                               validator: (v) => v == null || v.isEmpty
                                   ? 'Username is required'
                                   : null,
@@ -116,7 +118,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               controller: _passwordController,
                               decoration: InputDecoration(
                                 labelText: 'Password',
-                                prefixIcon: const Icon(Icons.lock_outline_rounded),
+                                prefixIcon: const Icon(
+                                  Icons.lock_outline_rounded,
+                                ),
                                 suffixIcon: IconButton(
                                   icon: Icon(
                                     _obscurePassword
@@ -129,11 +133,32 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                               obscureText: _obscurePassword,
-                              validator: (v) => v == null || v.isEmpty
-                                  ? 'Password is required'
-                                  : null,
+                              validator: (v) {
+                                if (v == null || v.isEmpty) {
+                                  return 'Password is required';
+                                }
+                                if (v.length < 5) {
+                                  return 'Password must be at least 5 characters';
+                                }
+                                return null;
+                              },
                             ),
-                            const SizedBox(height: 28),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: auth.isLoading
+                                    ? null
+                                    : () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              const ForgotPasswordScreen(),
+                                        ),
+                                      ),
+                                child: const Text('Forgot password?'),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
                             SizedBox(
                               height: 52,
                               child: ElevatedButton(
@@ -150,6 +175,39 @@ class _LoginScreenState extends State<LoginScreen> {
                                     : const Text('Sign In'),
                               ),
                             ),
+                            const SizedBox(height: 20),
+                            const Row(
+                              children: [
+                                Expanded(child: Divider()),
+                                Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 12),
+                                  child: Text(
+                                    'New customer?',
+                                    style: TextStyle(
+                                      color: AppColors.textMuted,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(child: Divider()),
+                              ],
+                            ),
+                            const SizedBox(height: 20),
+                            OutlinedButton.icon(
+                              onPressed: auth.isLoading
+                                  ? null
+                                  : () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const RegisterScreen(),
+                                      ),
+                                    ),
+                              icon: const Icon(
+                                Icons.person_add_alt_1_rounded,
+                                size: 20,
+                              ),
+                              label: const Text('Create Customer Account'),
+                            ),
                           ],
                         ),
                       ),
@@ -158,7 +216,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        _RoleTag(icon: Icons.local_shipping_outlined, label: 'Driver'),
+                        _RoleTag(
+                          icon: Icons.local_shipping_outlined,
+                          label: 'Driver',
+                        ),
                         const SizedBox(width: 12),
                         _RoleTag(icon: Icons.person_outline, label: 'Customer'),
                       ],

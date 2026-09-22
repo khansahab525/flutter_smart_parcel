@@ -46,6 +46,9 @@ abstract final class AppColors {
         return success;
       case 'cancelled':
         return error;
+      case 'finding_driver':
+      case 'awaiting_acceptance':
+        return warning;
       case 'in_transit':
       case 'out_for_delivery':
       case 'picked_up':
